@@ -38,13 +38,35 @@ function fmtDuration(s: number) {
   return h > 0 ? `${h}時間${m}分` : `${m}分`
 }
 
+// "03:39:31" — always 2-digit, JST.
 const fetchedAt = computed(() =>
   status.value
-    ? new Date(status.value.fetched_at * 1000).toLocaleTimeString('ja-JP', { timeZone: 'Asia/Tokyo' })
+    ? new Date(status.value.fetched_at * 1000).toLocaleTimeString('ja-JP', {
+        timeZone: 'Asia/Tokyo',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      })
     : '',
 )
 
-onMounted(load)
+// Ticks every second so "◯秒前" stays live without re-querying the server.
+const now = ref(Date.now())
+let timer: ReturnType<typeof setInterval> | undefined
+onMounted(() => {
+  load()
+  timer = setInterval(() => (now.value = Date.now()), 1000)
+})
+onUnmounted(() => clearInterval(timer))
+
+const ago = computed(() => {
+  if (!status.value) return ''
+  const s = Math.max(0, Math.floor(now.value / 1000 - status.value.fetched_at))
+  if (s < 60) return `${s}秒前`
+  if (s < 3600) return `${Math.floor(s / 60)}分前`
+  return `${Math.floor(s / 3600)}時間前`
+})
 </script>
 
 <template>
@@ -62,7 +84,12 @@ onMounted(load)
         <span class="now">{{ status.players }}</span>
         <span class="max">/ {{ status.max_players }}</span>
       </p>
-      <p class="meta">map: {{ status.map }} ・ 取得 {{ fetchedAt }} JST</p>
+      <p class="fetched">
+        <span class="label">取得</span>
+        <span class="time">{{ fetchedAt }}</span>
+        <span class="ago">{{ ago }}</span>
+      </p>
+      <p class="meta">map: {{ status.map }}</p>
 
       <h2>接続中 ({{ status.player_list.length }})</h2>
       <p class="note">名前はサーバーが返す仮名で、接続のたびに変わります。</p>
@@ -97,6 +124,10 @@ button:disabled { opacity: .6; cursor: default; }
 .count { margin: 12px 0 4px; }
 .now { font-size: 3rem; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
 .max { font-size: 1.4rem; color: var(--muted); margin-left: 6px; }
+.fetched { display: flex; align-items: baseline; gap: 10px; margin: 8px 0 2px; }
+.fetched .label { color: var(--muted); font-size: .85rem; }
+.fetched .time { font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.fetched .ago { color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; }
 .meta, .note { color: var(--muted); font-size: .85rem; margin: 4px 0; }
 h2 { font-size: .95rem; margin: 20px 0 4px; }
 ul { list-style: none; padding: 0; margin: 8px 0 0; }
