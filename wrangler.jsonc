@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "rust-status",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": false,
+  "routes": [{ "pattern": "rust-status.mtamaramu.com", "custom_domain": true }],
+  "assets": {
+    "directory": ".output/public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  // A2S relay on mini-ryzen (socket-activated, 127.0.0.1:28099) via the mini-ryzen tunnel.
+  "vpc_services": [
+    { "binding": "RELAY", "service_id": "01a1b74d-09b8-7e52-8147-ce91441ae5ca", "remote": true }
+  ],
+  "observability": { "enabled": true }
+}

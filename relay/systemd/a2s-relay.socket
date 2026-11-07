@@ -1,0 +1,10 @@
+[Unit]
+Description=A2S relay socket for rust-status (HTTP 127.0.0.1:28099)
+
+[Socket]
+ListenStream=127.0.0.1:28099
+Accept=yes
+MaxConnections=4
+
+[Install]
+WantedBy=sockets.target

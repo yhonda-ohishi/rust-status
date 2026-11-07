@@ -1,0 +1,10 @@
+[Unit]
+Description=A2S relay (one query per connection)
+
+[Service]
+ExecStart=%h/.local/bin/a2s-relay
+Environment=TARGET=153.120.121.159:28016
+StandardInput=socket
+StandardOutput=socket
+StandardError=journal
+RuntimeMaxSec=10
