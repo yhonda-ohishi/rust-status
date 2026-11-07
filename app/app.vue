@@ -106,11 +106,11 @@ const ago = computed(() => {
 <style>
 :root {
   --bg: #f6f5f2; --fg: #1d1d1b; --muted: #6b6a66; --card: #ffffff; --line: #e2e0da;
-  --accent: #c4512b; --err: #b42318;
+  --accent: #c4512b; --err: #b42318; --time: #1d5fd1;
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #161615; --fg: #ecebe7; --muted: #9b9a95; --card: #20201e; --line: #34332f; --accent: #e07a52; --err: #f97066; }
+  :root { --bg: #161615; --fg: #ecebe7; --muted: #9b9a95; --card: #20201e; --line: #34332f; --accent: #e07a52; --err: #f97066; --time: #6ea8ff; }
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--fg); font-family: system-ui, sans-serif; }
@@ -126,7 +126,7 @@ button:disabled { opacity: .6; cursor: default; }
 .max { font-size: 1.4rem; color: var(--muted); margin-left: 6px; }
 .fetched { display: flex; align-items: baseline; gap: 10px; margin: 8px 0 2px; }
 .fetched .label { color: var(--muted); font-size: .85rem; }
-.fetched .time { font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.fetched .time { color: var(--time); font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
 .fetched .ago { color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; }
 .meta, .note { color: var(--muted); font-size: .85rem; margin: 4px 0; }
 h2 { font-size: .95rem; margin: 20px 0 4px; }
