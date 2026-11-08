@@ -156,7 +156,7 @@ const ago = computed(() => {
       <p class="meta">map: {{ status.map }}</p>
 
       <h2>接続中 ({{ status.player_list.length }})</h2>
-      <p class="note">名前はサーバーが返す仮名で、接続のたびに変わります。右はログイン日時。行をタップでハイライト。</p>
+      <p class="note">名前はサーバーが返す仮名で、接続のたびに変わります。右はログイン日時と接続時間。行をタップでハイライト。</p>
       <ul>
         <li
           v-for="(p, i) in rows"
@@ -165,7 +165,10 @@ const ago = computed(() => {
           @click="toggle(i)"
         >
           <span>{{ p.name || '(名前なし)' }}</span>
-          <span class="dur" :title="fmtDuration(p.duration_secs)">{{ fmtLogin(p.login) }}</span>
+          <span class="dur">
+            {{ fmtLogin(p.login) }}
+            <span class="elapsed">{{ fmtDuration(p.duration_secs) }}</span>
+          </span>
         </li>
       </ul>
     </section>
@@ -203,6 +206,7 @@ ul { list-style: none; padding: 0; margin: 8px 0 0; }
 li { display: flex; justify-content: space-between; padding: 8px 10px; margin: 0 -10px; border-top: 1px solid var(--line); cursor: pointer; border-radius: 6px; }
 li.picked { background: var(--pick); font-weight: 600; }
 li.picked .dur { color: var(--fg); }
+.elapsed { display: inline-block; min-width: 6.5em; text-align: right; margin-left: 10px; }
 .dur { color: var(--muted); font-variant-numeric: tabular-nums; }
 .error { color: var(--err); margin-top: 16px; }
 </style>
