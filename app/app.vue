@@ -38,6 +38,70 @@ function fmtDuration(s: number) {
   return h > 0 ? `${h}時間${m}分` : `${m}分`
 }
 
+// "11/08 01:23" JST — login moment = fetch time minus connected duration.
+function fmtLogin(epoch: number) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('ja-JP', {
+      timeZone: 'Asia/Tokyo',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
+      .formatToParts(new Date(epoch * 1000))
+      .map((p) => [p.type, p.value]),
+  )
+  return `${parts.month}/${parts.day} ${parts.hour}:${parts.minute}`
+}
+
+interface Row { name: string; duration_secs: number; login: number }
+
+const rows = computed<Row[]>(() =>
+  status.value
+    ? status.value.player_list
+        .map((p) => ({ ...p, login: Math.round(status.value!.fetched_at - p.duration_secs) }))
+        .sort((a, b) => a.login - b.login)
+    : [],
+)
+
+// The selected player survives reloads via localStorage. Names are per-connection
+// pseudonyms, so identify by name + login time (login drifts a few seconds between
+// queries), falling back to login time alone.
+const PICK_KEY = 'rust-status:pick'
+const TOLERANCE = 15
+const pick = ref<{ name: string; login: number } | null>(null)
+
+onMounted(() => {
+  try {
+    const raw = localStorage.getItem(PICK_KEY)
+    if (raw) pick.value = JSON.parse(raw)
+  } catch {}
+})
+
+const pickedIndex = computed(() => {
+  const p = pick.value
+  if (!p) return -1
+  let best = -1
+  let bestScore = Infinity
+  rows.value.forEach((r, i) => {
+    const diff = Math.abs(r.login - p.login)
+    if (diff > TOLERANCE) return
+    const score = diff - (r.name === p.name ? 1000 : 0)
+    if (score < bestScore) { bestScore = score; best = i }
+  })
+  return best
+})
+
+function toggle(i: number) {
+  const r = rows.value[i]
+  pick.value = pickedIndex.value === i ? null : { name: r.name, login: r.login }
+  try {
+    if (pick.value) localStorage.setItem(PICK_KEY, JSON.stringify(pick.value))
+    else localStorage.removeItem(PICK_KEY)
+  } catch {}
+}
+
 // "03:39:31" — always 2-digit, JST.
 const fetchedAt = computed(() =>
   status.value
@@ -92,11 +156,16 @@ const ago = computed(() => {
       <p class="meta">map: {{ status.map }}</p>
 
       <h2>接続中 ({{ status.player_list.length }})</h2>
-      <p class="note">名前はサーバーが返す仮名で、接続のたびに変わります。</p>
+      <p class="note">名前はサーバーが返す仮名で、接続のたびに変わります。右はログイン日時。行をタップでハイライト。</p>
       <ul>
-        <li v-for="(p, i) in [...status.player_list].sort((a, b) => b.duration_secs - a.duration_secs)" :key="i">
+        <li
+          v-for="(p, i) in rows"
+          :key="i"
+          :class="{ picked: i === pickedIndex }"
+          @click="toggle(i)"
+        >
           <span>{{ p.name || '(名前なし)' }}</span>
-          <span class="dur">{{ fmtDuration(p.duration_secs) }}</span>
+          <span class="dur" :title="fmtDuration(p.duration_secs)">{{ fmtLogin(p.login) }}</span>
         </li>
       </ul>
     </section>
@@ -106,11 +175,11 @@ const ago = computed(() => {
 <style>
 :root {
   --bg: #f6f5f2; --fg: #1d1d1b; --muted: #6b6a66; --card: #ffffff; --line: #e2e0da;
-  --accent: #c4512b; --err: #b42318; --time: #1d5fd1;
+  --accent: #c4512b; --err: #b42318; --time: #1d5fd1; --pick: #fde9a8;
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #161615; --fg: #ecebe7; --muted: #9b9a95; --card: #20201e; --line: #34332f; --accent: #e07a52; --err: #f97066; --time: #6ea8ff; }
+  :root { --bg: #161615; --fg: #ecebe7; --muted: #9b9a95; --card: #20201e; --line: #34332f; --accent: #e07a52; --err: #f97066; --time: #6ea8ff; --pick: #4a3f12; }
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--fg); font-family: system-ui, sans-serif; }
@@ -131,7 +200,9 @@ button:disabled { opacity: .6; cursor: default; }
 .meta, .note { color: var(--muted); font-size: .85rem; margin: 4px 0; }
 h2 { font-size: .95rem; margin: 20px 0 4px; }
 ul { list-style: none; padding: 0; margin: 8px 0 0; }
-li { display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--line); }
+li { display: flex; justify-content: space-between; padding: 8px 10px; margin: 0 -10px; border-top: 1px solid var(--line); cursor: pointer; border-radius: 6px; }
+li.picked { background: var(--pick); font-weight: 600; }
+li.picked .dur { color: var(--fg); }
 .dur { color: var(--muted); font-variant-numeric: tabular-nums; }
 .error { color: var(--err); margin-top: 16px; }
 </style>
